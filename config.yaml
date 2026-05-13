@@ -13,6 +13,23 @@ crux-mk: true
 adapter_target: expedia-ota
 commission_pct: 0.20
 
+# === Default-Action (Welle-51 Batch-5 Migration, per Schicht-2 v1.2) ===
+# Migration-Welle: Welle-51 Batch-5
+default_action:
+  description: "Expedia-OTA-Connector fuer HeyLou-Hotels: Inventory/Rate/Bookings-Sync via Expedia-Partner-API mit OAuth + Commission-Tracker (20% Expedia-Kommission, hoher rho-Hebel) + Tenant-Context-Isolation"
+  rho_per_run_eur: 140
+  rho_validation_source: unvalidated
+  block_gates:
+    - gate_id: K13_PAV
+      block_reason: "Pre-Action-Check failed (Expedia-Partner-API-Health daily-anchor missing ODER OAuth-Token expired ODER PHRONESIS_TICKET missing fuer Real-Mode)"
+      false_block_cost_eur: 70
+      legitimate_block_condition: "Expedia-Partner-API unreachable >300s ODER OAuth-Token-Refresh-Failure ODER DF_OTA_EXPEDIA_REAL_ENABLED=true ohne PHRONESIS_TICKET ODER Commission-Pct-Drift > 1% (Expedia Rate-Change)"
+    - gate_id: K12
+      block_reason: "Provenance fehlt in Booking-Response ODER Webhook-Payload Schema-Mismatch ODER Commission-Tracker mismatch zu config (0.20)"
+      false_block_cost_eur: 50
+      legitimate_block_condition: "Expedia-Response ohne reservation_id/property_id-Provenance ODER Webhook-Signature-Verification failed ODER Schema-Drift vs Partner-API-Spec"
+  graceful_degradation_path: "degraded_no_real_api (DF_OTA_EXPEDIA_REAL_ENABLED=false → Mock-Inventory) ODER standalone_mock (Internet-Outage, voller Mock-Fallback ohne Commission-Tracking)"
+
 llm_providers: []
 
 # === K11-K16 ===
